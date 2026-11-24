@@ -6,9 +6,9 @@
 
 ## 当前进度
 
-已完成阶段 1、阶段 2，等待开始阶段 3：SSM 全注解框架整合。
+已完成阶段 1 至阶段 3。下一阶段是员工 Entity、Mapper 和 Service 开发。
 
-阶段 1 已配置依赖、编译、WAR 打包、Git 忽略规则及项目说明。尚未实现 Servlet 初始化、Java 数据源配置、员工业务接口或 JUnit 测试。WAR 构建成功不代表 SSM 已整合完成，也不代表业务接口可以访问。
+项目已具备 Maven WAR 构建、MySQL 初始化脚本、Spring 父子容器、Druid 数据源和 MyBatis-Plus 分页配置。员工数据访问与业务接口将在后续阶段加入。
 
 ## 环境与版本
 
@@ -36,7 +36,7 @@ Spring、MyBatis-Plus、Jackson、Log4j2 和 JUnit 分别使用 BOM 统一模块
 
 - Spring 7 使用 `jakarta.servlet` 和 Jakarta Validation；部署目标是 Tomcat 11，不是 Tomcat 9 或 10.1。
 - 原生 Spring 项目显式引入 MyBatis-Spring 4.x，不使用 MyBatis-Plus 的 Spring Boot Starter。
-- MP 分页单独引入 `mybatis-plus-jsqlparser`，后续通过 `MybatisSqlSessionFactoryBean` 显式注册插件。
+- MP 分页依赖 `mybatis-plus-jsqlparser`，在 `MybatisSqlSessionFactoryBean` 中显式注册，使用 MySQL 方言，单页最多 100 条。
 - Jackson 3 已包含 Java 时间类型支持，不额外添加 Jackson 2 的 `jackson-datatype-jsr310`。
 - Servlet API 和 Lombok 使用 provided 作用域，不打入 WAR；JUnit、Spring Test 和 Expressly 仅用于测试。
 - 日志使用 SLF4J 2 → Log4j2，以及 Commons Logging → Log4j2；不同时添加 Logback、slf4j-simple 或 log4j-to-slf4j。
@@ -63,14 +63,14 @@ mvn package
 
 构建产物为 `target/ssm-emp-mis.war`。当前没有完整 Maven Wrapper，使用已安装的 `mvn`。
 
-后续测试命令：
+测试命令：
 
 ```sh
 mvn test
 mvn verify -Pintegration
 ```
 
-Surefire 执行 `*Test` 单元测试；启用 integration profile 后，Failsafe 执行 `*IT` 集成测试。当前尚无测试用例，Maven 输出 `No tests to run` 不能视为业务测试通过。后续数据库集成测试只允许使用独立的 `ssm_emp_test` 库。
+Surefire 执行 `*Test`，启用 integration profile 后 Failsafe 执行 `*IT`。MySQL 集成测试使用独立的 `ssm_emp_test` 库。环境变量和部署步骤见 [Tomcat 11 本地部署](docs/deployment.md)。
 
 ### 阶段 1 实际验收记录（2026-11-24）
 
@@ -88,11 +88,11 @@ IDEA 中将项目 SDK、Maven 运行 JDK 及部署 Tomcat 的 JRE 都设置为 J
 
 ## 目录约定
 
-- `src/main/java/com/xinghe/emp/`：后续按 config、controller、service、mapper、entity、dto、common、interceptor、aspect 分包。
-- `src/main/resources/`：后续放置非敏感配置与日志配置。
-- `src/test/java/`：后续放置单元测试、MVC 测试及集成测试。
-- `database/`：阶段 2 新增数据库结构与示例数据脚本。
-- `docs/`：后续记录接口、部署、事务验证及 ApiFox 测试。
+- `src/main/java/com/xinghe/emp/config/`：Servlet 初始化、Spring MVC、Druid 和 MyBatis-Plus 配置。
+- `src/main/resources/`：非敏感连接池参数与 Log4j2 控制台日志配置。
+- `src/test/java/`：MVC JSON 验收和 MySQL 框架集成测试。
+- `sql`：数据库结构、示例数据及测试库脚本。
+- `docs/`：部署说明，后续补充接口、事务和 ApiFox 记录。
 
 现阶段不创建没有实际内容的业务类或空文档目录。
 
@@ -171,7 +171,7 @@ SELECT COUNT(*) AS test_employee_count FROM ssm_emp_test.emp;
 | TEST_DB_URL | 测试 JDBC URL：jdbc:mysql://127.0.0.1:3306/ssm_emp_test |
 | TEST_DB_USERNAME / TEST_DB_PASSWORD | 测试库独立账号及密码 |
 
-凭据在终端或 IDEA 环境变量中配置，不写入脚本或 Git。阶段 2 只初始化数据库，Java 读取这些变量并创建数据源的逻辑在阶段 3 实现。
+凭据由终端或 IDEA 环境变量提供。应用的数据源配置读取 `DB_*`，集成测试单独用 `TEST_DB_*` 配置测试上下文中的数据源。
 
 ### 阶段 2 实际验收记录（2026-11-24）
 
@@ -185,9 +185,16 @@ SELECT COUNT(*) AS test_employee_count FROM ssm_emp_test.emp;
 - 重跑两个结构脚本均因表已存在而停止（1050）；业务表记录数、ID 合计及薪资合计未改变。未重跑一次性示例数据脚本。
 - 本阶段未创建 Java 类或应用数据源配置，也未执行 JUnit、Tomcat 或 ApiFox 测试。
 
+## 阶段 3 实际验收记录（2026-11-24）
+
+- `mvn verify -Pintegration` 构建成功。Surefire 运行 1 项 MockMvc 测试，Failsafe 运行 1 项 MySQL 集成测试，均通过。
+- MockMvc 验证了中文、ISO 日期和精确的小数金额。集成测试确认父子容器共用同一个 Druid 数据源，连接实际指向 MySQL 8.4.11 的 `ssm_emp_test`，`SELECT 1` 成功，测试 Mapper 的第 2 页返回 1 条记录并报告总数 3。
+- `target/ssm-emp-mis.war` 已部署到独立的本机 Tomcat 11.0.22 实例。日志确认根容器、Druid 和 DispatcherServlet 启动，访问 `/ssm-emp-mis/emps` 进入 MVC 并返回预期的 HTTP 404。停止时确认连接池关闭，Tomcat 未报告 JDBC 驱动或清理线程残留。
+- 验收使用临时只读数据库账号，结束后已清理。部署步骤见 [Tomcat 11 本地部署](docs/deployment.md)。
+
 ## 配置与数据约束
 
-后续数据源配置从 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD` 等环境变量读取；测试库使用独立的测试环境变量。当前仅约定配置方式，尚未实现配置读取。
+数据源从 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD` 读取连接信息，测试库使用独立的测试环境变量。
 
 - 不在 POM、源码、README、初始化脚本或 ApiFox 导出中写入真实密码。
 - 本地 `.env` 和 application-local.properties 等敏感配置已加入忽略规则；原生 Spring 不会自动加载 `.env`，环境变量需由终端或 IDEA 运行配置提供。
