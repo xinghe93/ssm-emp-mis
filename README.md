@@ -6,9 +6,9 @@
 
 ## 当前进度
 
-已完成阶段 1：项目初始化与 Maven 依赖管理，等待开始阶段 2。
+已完成阶段 1、阶段 2，等待开始阶段 3：SSM 全注解框架整合。
 
-本阶段配置依赖、编译、WAR 打包、Git 忽略规则及项目说明；尚未实现 Servlet 初始化、数据库连接、员工业务接口或测试用例。WAR 构建成功不代表 SSM 已整合完成，也不代表业务接口可以访问。
+阶段 1 已配置依赖、编译、WAR 打包、Git 忽略规则及项目说明。尚未实现 Servlet 初始化、Java 数据源配置、员工业务接口或 JUnit 测试。WAR 构建成功不代表 SSM 已整合完成，也不代表业务接口可以访问。
 
 ## 环境与版本
 
@@ -20,7 +20,7 @@
 | 外部 Tomcat | 11.0.x，Servlet 6.1；本机已确认安装 11.0.22 |
 | MyBatis-Plus | 3.5.18.1 |
 | MyBatis-Spring | 4.1.0 |
-| MySQL 服务端 | 计划使用 8.4.x LTS，实例与连接信息尚未配置 |
+| MySQL 服务端 | 已确认 MySQL 8.4.11，Docker 容器 mysql8，127.0.0.1:3306 |
 | MySQL Connector/J | 9.6.0 |
 | Druid | 1.2.28 |
 | Jackson | 3.1.8 LTS |
@@ -95,6 +95,95 @@ IDEA 中将项目 SDK、Maven 运行 JDK 及部署 Tomcat 的 JRE 都设置为 J
 - `docs/`：后续记录接口、部署、事务验证及 ApiFox 测试。
 
 现阶段不创建没有实际内容的业务类或空文档目录。
+
+## 数据库初始化（阶段 2）
+
+使用现有 Docker 容器 mysql8 中的 MySQL 8.4.11，不重新安装或重建容器。业务库为 `ssm_emp`，测试库为 `ssm_emp_test`，字符集为 utf8mb4，排序规则为 utf8mb4_0900_ai_ci，表引擎为 InnoDB。
+
+### 员工表
+
+| 字段 | 类型 | 约束与含义 |
+| --- | --- | --- |
+| emp_id | BIGINT | 自增主键，对应 Long |
+| emp_name | VARCHAR(50) | 非空；允许同名员工 |
+| gender | TINYINT | 非空；0 未说明、1 男、2 女 |
+| dept | VARCHAR(50) | 非空；部门索引 idx_emp_dept |
+| post | VARCHAR(50) | 非空 |
+| salary | DECIMAL(12,2) | 非空；范围 0.00～9999999999.99，对应 BigDecimal |
+| hire_date | DATE | 非空；对应 LocalDate |
+| status | TINYINT | 非空；默认 1；1 在职、0 离职 |
+
+数据库使用 CHECK 约束限制性别、非负薪资和任职状态。`status` 不参与逻辑删除，离职记录仍正常查询。
+
+姓名、部门、岗位的非空白校验、薪资最多两位小数、入职日期不得晚于当天，在阶段 6 的应用参数校验中实现。MySQL DECIMAL 可能对超出小数位数的数据进行舍入，不能依赖它替代入参精度校验；数据库需保持严格 SQL 模式以拒绝溢出、超长字符串和非法日期。
+
+### 初始化顺序
+
+先通过有建库权限的账号确认实际服务器版本、已有库表及表数据，不能仅凭本机 mysql 客户端版本判断服务端：
+
+```sh
+mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root --password \
+  --execute="SELECT VERSION(); SHOW DATABASES LIKE 'ssm_emp%';"
+```
+
+确认没有同名员工表或需要保留的现有结构后，再按顺序执行。`--password` 不携带参数，客户端会交互提示输入密码。
+
+```sh
+mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root --password \
+  --default-character-set=utf8mb4 < database/01-schema.sql
+```
+
+检查 `ssm_emp.emp` 为空后，执行一次示例数据脚本：
+
+```sh
+mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root --password \
+  --execute="SELECT COUNT(*) FROM ssm_emp.emp;"
+mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root --password \
+  --default-character-set=utf8mb4 < database/02-sample-data.sql
+mysql --protocol=TCP --host=127.0.0.1 --port=3306 --user=root --password \
+  --default-character-set=utf8mb4 < database/03-test-schema.sql
+```
+
+- 01-schema.sql 创建业务库及 emp 表；已有表时明确失败，不使用 IF NOT EXISTS 掩盖表结构不一致。
+- 02-sample-data.sql 插入 24 条虚构员工数据，覆盖 6 个部门、3 种性别编码及在职/离职。该脚本不是幂等脚本，重复执行会追加数据；不得把重跑脚本当作重置方式。
+- 03-test-schema.sql 用 CREATE TABLE LIKE 复制业务表结构、索引及 CHECK 约束，测试表初始没有员工数据。后续如变更业务表，需要同步迁移测试表；该脚本不会自动同步已有表。
+- 脚本不包含删库、删表、清空、替换员工数据或创建带密码账号的语句；遇到错误应停止处理，不加 `--force` 忽略错误。
+- 初始化账号只用于建库和导入；后续应用和测试连接分别使用对应库的受限账号，不将 root 账号作为应用默认配置。
+
+初始化后的检查可在 MySQL 客户端执行：
+
+```sql
+SHOW CREATE TABLE ssm_emp.emp;
+SHOW CREATE TABLE ssm_emp_test.emp;
+SELECT COUNT(*) AS employee_count FROM ssm_emp.emp;
+SELECT dept, COUNT(*) AS employee_count FROM ssm_emp.emp GROUP BY dept;
+SELECT COUNT(*) AS test_employee_count FROM ssm_emp_test.emp;
+```
+
+预期业务库有 24 条员工记录、每个部门 4 条，测试表有 0 条记录。负薪资、非法性别和非法状态的写入应由 CHECK 约束拒绝。约束及回滚实验只在测试库中执行，不在业务库中试写非法数据。
+
+### 后续连接配置约定
+
+| 环境变量 | 作用 |
+| --- | --- |
+| DB_URL | 业务 JDBC URL：jdbc:mysql://127.0.0.1:3306/ssm_emp |
+| DB_USERNAME / DB_PASSWORD | 业务库受限账号及密码 |
+| TEST_DB_URL | 测试 JDBC URL：jdbc:mysql://127.0.0.1:3306/ssm_emp_test |
+| TEST_DB_USERNAME / TEST_DB_PASSWORD | 测试库独立账号及密码 |
+
+凭据在终端或 IDEA 环境变量中配置，不写入脚本或 Git。阶段 2 只初始化数据库，Java 读取这些变量并创建数据源的逻辑在阶段 3 实现。
+
+### 阶段 2 实际验收记录（2026-11-24）
+
+- 通过服务端查询确认现有 mysql8 容器为 MySQL 8.4.11，开启 STRICT_TRANS_TABLES；初始化前两个实验库均不存在。
+- 三个脚本已实际执行，创建 ssm_emp.emp、插入 24 条示例数据，并创建空的 ssm_emp_test.emp。
+- 核对两个表的 8 个字段、字段类型、非空约束、自增主键、部门索引、InnoDB、utf8mb4 排序规则、3 个 CHECK 约束及默认在职状态。
+- 核对业务表 24 条记录、6 个部门、3 种性别编码、2 种任职状态，以及金额和日期的精确读写。
+- 只在测试库中验证中文和表情字符、自增 ID、默认状态、合法闰日、0.00 与 9999999999.99 的薪资边界。
+- 负薪资、非法性别、非法状态被 CHECK 拒绝（3819）；空姓名、薪资溢出、超长姓名、非法日期分别被拒绝（1048、1264、1406、1292）。
+- 验证正常插入后显式回滚，以及事务中先成功插入再发生约束异常并断开连接后回滚；最终测试表保持 0 条记录。自增序列可能已推进，回滚不保证 ID 连续。
+- 重跑两个结构脚本均因表已存在而停止（1050）；业务表记录数、ID 合计及薪资合计未改变。未重跑一次性示例数据脚本。
+- 本阶段未创建 Java 类或应用数据源配置，也未执行 JUnit、Tomcat 或 ApiFox 测试。
 
 ## 配置与数据约束
 
