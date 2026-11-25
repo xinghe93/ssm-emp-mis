@@ -6,9 +6,9 @@
 
 ## 当前进度
 
-已完成阶段 1 至阶段 3。下一阶段是员工 Entity、Mapper 和 Service 开发。
+已完成阶段 1 至阶段 4。下一阶段是员工 RESTful Controller 和统一响应。
 
-项目已具备 Maven WAR 构建、MySQL 初始化脚本、Spring 父子容器、Druid 数据源和 MyBatis-Plus 分页配置。员工数据访问与业务接口将在后续阶段加入。
+项目已具备 Maven WAR 构建、SSM 全注解配置、MySQL 初始化脚本和员工 Service。Service 支持增删改查、批量删除和多条件分页。HTTP 接口将在阶段 5 加入。
 
 ## 环境与版本
 
@@ -89,9 +89,10 @@ IDEA 中将项目 SDK、Maven 运行 JDK 及部署 Tomcat 的 JRE 都设置为 J
 ## 目录约定
 
 - `src/main/java/com/xinghe/emp/config/`：Servlet 初始化、Spring MVC、Druid 和 MyBatis-Plus 配置。
+- `src/main/java/com/xinghe/emp/` 下的 `entity`、`mapper`、`service`、`dto` 和 `common`：员工映射、数据访问、业务操作、请求模型和业务异常。
 - `src/main/resources/`：非敏感连接池参数与 Log4j2 控制台日志配置。
-- `src/test/java/`：MVC JSON 验收和 MySQL 框架集成测试。
-- `sql`：数据库结构、示例数据及测试库脚本。
+- `src/test/java/`：MVC JSON、MySQL 框架和员工 Service 集成测试。
+- `database/`：数据库结构、示例数据及测试库脚本。
 - `docs/`：部署说明，后续补充接口、事务和 ApiFox 记录。
 
 现阶段不创建没有实际内容的业务类或空文档目录。
@@ -191,6 +192,14 @@ SELECT COUNT(*) AS test_employee_count FROM ssm_emp_test.emp;
 - MockMvc 验证了中文、ISO 日期和精确的小数金额。集成测试确认父子容器共用同一个 Druid 数据源，连接实际指向 MySQL 8.4.11 的 `ssm_emp_test`，`SELECT 1` 成功，测试 Mapper 的第 2 页返回 1 条记录并报告总数 3。
 - `target/ssm-emp-mis.war` 已部署到独立的本机 Tomcat 11.0.22 实例。日志确认根容器、Druid 和 DispatcherServlet 启动，访问 `/ssm-emp-mis/emps` 进入 MVC 并返回预期的 HTTP 404。停止时确认连接池关闭，Tomcat 未报告 JDBC 驱动或清理线程残留。
 - 验收使用临时只读数据库账号，结束后已清理。部署步骤见 [Tomcat 11 本地部署](docs/deployment.md)。
+
+## 阶段 4 实际验收记录（2026-11-25）
+
+- `EmpMapper` 使用 MyBatis-Plus `BaseMapper`。Service 支持新增、完整更新、单条与批量物理删除、按 ID 查询，以及按姓名、性别和部门筛选分页。新增默认在职，离职记录保留在查询结果中。
+- 分页默认第 1 页、每页 10 条，按员工 ID 倒序，超出末页返回空记录。姓名按字面子串匹配，`%`、`_` 和 `!` 按普通字符处理。
+- `mvn verify -Pintegration` 构建成功，1 项 MockMvc 测试与 5 项 MySQL 集成测试均通过。员工测试覆盖自增、金额和日期读写、同内容更新、批量删除中的无效或缺失 ID、组合筛选和越界分页。
+- 本次 MySQL 实例中两个实验库起初均不存在。验收按原表结构初始化 `ssm_emp_test`，员工测试写入事务均回滚，最终测试表保持 0 条记录，临时账号已清理。当前实例部署前仍需初始化业务库 `ssm_emp`。
+- 批量删除会在执行前检查所有 ID。并发删除场景的事务原子性在阶段 6 接入声明式事务后验收。
 
 ## 配置与数据约束
 

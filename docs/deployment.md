@@ -22,16 +22,16 @@
 
 Tomcat 会发现 `WebAppInitializer` 并创建根容器与 MVC 子容器。成功启动后，日志应包含根容器初始化完成、Druid 初始化完成及 `dispatcher` Servlet 初始化完成。
 
-阶段 3 可用以下请求确认已进入 MVC。Tomcat 若使用其他端口，请替换 `8080`。
+可用以下请求确认已进入 MVC。Tomcat 若使用其他端口，请替换 `8080`。
 
 ```sh
 curl -i http://127.0.0.1:8080/ssm-emp-mis/emps
 ```
 
-这时 `/emps` 应返回 HTTP 404，应用日志出现 `No mapping for GET /ssm-emp-mis/emps`。目前 WAR 尚无业务 Mapper，启动时扫描器会提示未发现 Mapper。员工 Mapper 和接口分别在阶段 4 和阶段 5 加入。
+阶段 4 已包含员工 Mapper 和 Service。`/emps` 此时仍返回 HTTP 404，应用日志出现 `No mapping for GET /ssm-emp-mis/emps`。员工 HTTP 接口在阶段 5 加入。
 
 ## 运行框架验收测试
 
 `mvn test` 运行 MockMvc 测试，验证 JSON 输出中的中文、ISO 日期和金额精度。
 
-在终端设置 `TEST_DB_URL`、`TEST_DB_USERNAME`、`TEST_DB_PASSWORD` 后执行 `mvn verify -Pintegration`。测试 JDBC URL 指向 `ssm_emp_test`，使用该库的独立账号。集成测试使用真实 MySQL 连接检查当前库和 `SELECT 1`，并通过测试 Mapper 执行分页查询。测试查询只读取固定值，测试 Mapper 不会打入 WAR。
+在终端设置 `TEST_DB_URL`、`TEST_DB_USERNAME`、`TEST_DB_PASSWORD` 后执行 `mvn verify -Pintegration`。测试 JDBC URL 指向 `ssm_emp_test`，使用仅有该库 `SELECT`、`INSERT`、`UPDATE`、`DELETE` 权限的独立账号。集成测试验证框架启动、分页和员工 CRUD。员工用例核对实际连接的库名，测试写入在事务中回滚。
