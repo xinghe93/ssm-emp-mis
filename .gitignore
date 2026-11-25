@@ -1,25 +1,18 @@
-target/
-!.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-.kotlin
+# Maven and Java build output
+/target/
+/out/
+/build/
+/*.war
+*.class
+.kotlin/
 
-### IntelliJ IDEA ###
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/shelf/
-.idea/dataSources/
-.idea/dataSources*.xml
-.idea/httpRequests/
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+# IntelliJ IDEA project metadata
+/.idea/
 *.iws
 *.iml
 *.ipr
 
-### Eclipse ###
+# Other IDEs
 .apt_generated
 .classpath
 .factorypath
@@ -27,35 +20,36 @@ target/
 .settings
 .springBeans
 .sts4-cache
-
-### NetBeans ###
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
+/.vscode/
 
-### VS Code ###
-.vscode/
-
-### Mac OS ###
-.DS_Store
-
-### Local configuration and secrets ###
+# Local configuration and secrets
 .env
 .env.*
 !.env.example
-src/main/resources/application-local.properties
-src/test/resources/application-test-local.properties
+!.env.*.example
+/src/*/resources/application-local.properties
+/src/*/resources/application-*-local.properties
+http-client.private.env.json
 *.jks
 *.p12
 *.pfx
 *.key
+*-key.pem
 
-### Runtime output ###
-out/
+# Local Tomcat and JVM runtime output
+/.tomcat/
+/tomcat-base/
 logs/
 *.log
+*.log.*
+*.hprof
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

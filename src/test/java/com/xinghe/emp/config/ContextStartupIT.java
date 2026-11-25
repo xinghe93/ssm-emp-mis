@@ -1,10 +1,12 @@
 package com.xinghe.emp.config;
 
 import com.alibaba.druid.pool.DruidDataSource;
+import com.baomidou.mybatisplus.extension.parser.JsqlParserGlobal;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.xinghe.emp.mapper.PaginationProbeMapper;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import javax.sql.DataSource;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.junit.jupiter.api.Test;
@@ -23,6 +25,7 @@ class ContextStartupIT {
     void parentAndMvcContextStartWithMySqlAndExecutePagination() throws Exception {
         var environment = new StandardEnvironment();
         var servletContext = new MockServletContext();
+        ExecutorService parserExecutor;
         try (var root = new AnnotationConfigWebApplicationContext();
              var mvc = new AnnotationConfigWebApplicationContext()) {
             root.setServletContext(servletContext);
@@ -33,6 +36,8 @@ class ContextStartupIT {
             )));
             root.register(RootConfig.class);
             root.refresh();
+            parserExecutor = root.getBean("jsqlParserExecutor", ExecutorService.class);
+            assertSame(parserExecutor, JsqlParserGlobal.getExecutorService());
 
             mvc.setParent(root);
             mvc.setServletContext(servletContext);
@@ -61,5 +66,6 @@ class ContextStartupIT {
             assertEquals(List.of(3), rows);
             assertEquals(3, page.getTotal());
         }
+        assertTrue(parserExecutor.isTerminated(), "关闭根容器时应释放 SQL 解析线程");
     }
 }

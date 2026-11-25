@@ -3,45 +3,37 @@ package com.xinghe.emp.config;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.util.stream.StreamSupport;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockServletContext;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
+import org.springframework.http.MediaType;
+import org.springframework.http.converter.HttpMessageConverters;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
+import org.springframework.mock.http.MockHttpOutputMessage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 class WebMvcConfigTest {
 
     @Test
-    void mvcSerializesUtf8IsoDatesAndDecimalAmounts() throws Exception {
-        try (var context = new AnnotationConfigWebApplicationContext()) {
-            context.setServletContext(new MockServletContext());
-            context.register(WebMvcConfig.class, JsonProbe.class);
-            context.refresh();
+    void jsonConverterSerializesUtf8IsoDatesAndDecimalAmounts() throws Exception {
+        var builder = HttpMessageConverters.forServer();
+        new WebMvcConfig().configureMessageConverters(builder);
+        var converter = StreamSupport.stream(builder.build().spliterator(), false)
+                .filter(JacksonJsonHttpMessageConverter.class::isInstance)
+                .map(JacksonJsonHttpMessageConverter.class::cast)
+                .findFirst()
+                .orElseThrow();
+        var output = new MockHttpOutputMessage();
+        var payload = new ProbePayload("测试员工", LocalDate.of(2024, 2, 29), new BigDecimal("12345.67"));
 
-            var response = MockMvcBuilders.webAppContextSetup(context).build()
-                    .perform(get("/serialization-probe"))
-                    .andReturn().getResponse();
+        converter.write(payload, MediaType.APPLICATION_JSON, output);
 
-            assertEquals(200, response.getStatus());
-            assertEquals("application/json", response.getContentType());
-            String json = response.getContentAsString(StandardCharsets.UTF_8);
-            assertTrue(json.contains("\"name\":\"测试员工\""), json);
-            assertTrue(json.contains("\"hireDate\":\"2024-02-29\""), json);
-            assertTrue(json.contains("\"salary\":12345.67"), json);
-        }
-    }
-
-    @RestController
-    static class JsonProbe {
-        @GetMapping("/serialization-probe")
-        public ProbePayload getSample() {
-            return new ProbePayload("测试员工", LocalDate.of(2024, 2, 29), new BigDecimal("12345.67"));
-        }
+        assertEquals(MediaType.APPLICATION_JSON, output.getHeaders().getContentType());
+        String json = output.getBodyAsString(StandardCharsets.UTF_8);
+        assertTrue(json.contains("\"name\":\"测试员工\""), json);
+        assertTrue(json.contains("\"hireDate\":\"2024-02-29\""), json);
+        assertTrue(json.contains("\"salary\":12345.67"), json);
     }
 
     record ProbePayload(String name, LocalDate hireDate, BigDecimal salary) {
