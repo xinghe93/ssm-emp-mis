@@ -8,6 +8,12 @@ import com.xinghe.emp.dto.EmpUpdateRequest;
 import com.xinghe.emp.entity.Emp;
 import com.xinghe.emp.service.EmpService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -31,39 +37,42 @@ public class EmpController {
     private final EmpService service;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<Result<Emp>> create(@RequestBody EmpCreateRequest body, HttpServletRequest request) {
+    public ResponseEntity<Result<Emp>> create(@Valid @RequestBody EmpCreateRequest body, HttpServletRequest request) {
         Emp employee = service.create(body);
         URI location = URI.create(request.getContextPath() + "/emps/" + employee.getEmpId());
         return ResponseEntity.created(location).body(Result.success(employee));
     }
 
     @PutMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    public Result<Emp> update(@RequestBody EmpUpdateRequest body) {
+    public Result<Emp> update(@Valid @RequestBody EmpUpdateRequest body) {
         return Result.success(service.update(body));
     }
 
     @DeleteMapping("/{id}")
-    public Result<Integer> deleteById(@PathVariable("id") Long id) {
+    public Result<Integer> deleteById(@PathVariable("id") @Positive(message = "员工 ID 必须为正整数") Long id) {
         return Result.success(service.deleteById(id));
     }
 
     @DeleteMapping
-    public Result<Integer> deleteBatch(@RequestParam("ids") List<Long> ids) {
+    public Result<Integer> deleteBatch(@RequestParam("ids") @Size(min = 1, max = 100, message = "批量删除需要 1 至 100 个员工 ID")
+                                       List<@NotNull(message = "员工 ID 不能为空") @Positive(message = "员工 ID 必须为正整数") Long> ids) {
         return Result.success(service.deleteBatch(ids));
     }
 
     @GetMapping("/{id}")
-    public Result<Emp> getById(@PathVariable("id") Long id) {
+    public Result<Emp> getById(@PathVariable("id") @Positive(message = "员工 ID 必须为正整数") Long id) {
         return Result.success(service.getById(id));
     }
 
     @GetMapping
     public Result<PageResult<Emp>> findPage(
             @RequestParam(name = "name", required = false) String name,
-            @RequestParam(name = "gender", required = false) Integer gender,
+            @RequestParam(name = "gender", required = false)
+            @Min(value = 0, message = "性别必须为 0、1 或 2") @Max(value = 2, message = "性别必须为 0、1 或 2") Integer gender,
             @RequestParam(name = "dept", required = false) String dept,
-            @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false) Integer size) {
+            @RequestParam(name = "page", required = false) @Positive(message = "页码必须大于等于 1") Integer page,
+            @RequestParam(name = "size", required = false) @Positive(message = "每页记录数必须大于等于 1")
+            @Max(value = 100, message = "每页记录数不能超过 100") Integer size) {
         var query = new EmpQueryRequest(name, gender, dept, page, size);
         return Result.success(PageResult.from(service.findPage(query)));
     }

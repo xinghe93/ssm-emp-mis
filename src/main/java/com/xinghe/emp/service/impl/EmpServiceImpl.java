@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import static com.xinghe.emp.common.BusinessException.Code.EMPLOYEE_NOT_FOUND;
 import static com.xinghe.emp.common.BusinessException.Code.INVALID_ARGUMENT;
@@ -45,6 +46,7 @@ public class EmpServiceImpl implements EmpService {
     }
 
     @Override
+    @Transactional
     public Emp update(EmpUpdateRequest request) {
         require(request != null, "缺少员工更新信息");
         requireValidId(request.empId());
@@ -68,6 +70,7 @@ public class EmpServiceImpl implements EmpService {
     }
 
     @Override
+    @Transactional
     public int deleteBatch(List<Long> ids) {
         require(ids != null && !ids.isEmpty() && ids.size() <= MAX_BATCH_SIZE, "批量删除需要 1 至 100 个员工 ID");
         ids.forEach(EmpServiceImpl::requireValidId);

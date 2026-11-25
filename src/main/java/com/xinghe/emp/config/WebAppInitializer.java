@@ -3,6 +3,8 @@ package com.xinghe.emp.config;
 import jakarta.servlet.Filter;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.SessionTrackingMode;
+import java.util.Set;
 import org.springframework.web.filter.CharacterEncodingFilter;
 import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 
@@ -10,6 +12,8 @@ public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServlet
 
     @Override
     public void onStartup(ServletContext servletContext) throws ServletException {
+        servletContext.setSessionTrackingModes(Set.of(SessionTrackingMode.COOKIE));
+        servletContext.getSessionCookieConfig().setHttpOnly(true);
         // 监听器按注册的逆序销毁，先让 Spring 关闭连接池，再清理驱动。
         servletContext.addListener(new JdbcCleanupListener());
         super.onStartup(servletContext);

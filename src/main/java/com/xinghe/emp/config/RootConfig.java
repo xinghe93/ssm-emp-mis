@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration(proxyBeanMethods = false)
-@Import({DataSourceConfig.class, MybatisPlusConfig.class})
+@Import({DataSourceConfig.class, MybatisPlusConfig.class, TransactionConfig.class})
 @ComponentScan("com.xinghe.emp.service")
 public class RootConfig {
 }

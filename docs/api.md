@@ -2,6 +2,14 @@
 
 假设 Tomcat 的 HTTP 端口为 `8080`，WAR 上下文为 `/ssm-emp-mis`，基础地址为 `http://127.0.0.1:8080/ssm-emp-mis`。下表路径相对该地址。
 
+## 实验登录
+
+发送 `POST /auth/login`，请求体为包含 `username` 和 `password` 的 JSON 对象。使用 Tomcat 环境变量 `AUTH_USERNAME` 和 `AUTH_PASSWORD` 配置的实验账号。成功时返回 `200` 和 `JSESSIONID` Cookie，响应中的 `data` 为 `null`。
+
+客户端随后携带该 Cookie 访问 `/emps`。重新登录会更换已有 Session 的 ID，连续空闲 30 分钟后 Session 失效。发送 `POST /auth/logout` 会使当前 Session 失效，退出请求无需请求体。
+
+## 员工接口
+
 | 方法与路径 | 输入 | 成功响应 |
 | --- | --- | --- |
 | `POST /emps` | 员工 JSON，`status` 可省略 | `201 Created`，返回新增员工及 `Location` |
@@ -26,7 +34,7 @@ POST 和 PUT 使用 `Content-Type: application/json`。新增请求示例见下�
 }
 ```
 
-员工 ID 由数据库生成。创建成功后，`Location` 形如 `/ssm-emp-mis/emps/42`。PUT 使用相同字段，需另外提供 `empId` 和 `status`，并提交全部可编辑字段。`gender` 为 `0` 未说明、`1` 男、`2` 女，`status` 为 `1` 在职、`0` 离职。新增省略状态时默认 `1`。薪资使用 JSON 数字，最多两位小数。日期格式为 `yyyy-MM-dd`。
+员工 ID 由数据库生成。创建成功后，`Location` 形如 `/ssm-emp-mis/emps/42`。PUT 使用相同字段，需另外提供 `empId` 和 `status`，并提交全部可编辑字段。`gender` 为 `0` 未说明、`1` 男、`2` 女，`status` 为 `1` 在职、`0` 离职。新增省略状态时默认 `1`。薪资使用 JSON 数字，最多两位小数。入职日期格式为 `yyyy-MM-dd`，不能晚于服务器当天日期。
 
 ## 查询与删除
 
@@ -40,7 +48,7 @@ POST 和 PUT 使用 `Content-Type: application/json`。新增请求示例见下�
 
 多个筛选条件同时生效，记录按 `empId` 倒序。`total` 是筛选后的总记录数，`pages` 是总页数。超过末页时保留请求页码，`records` 返回空数组。
 
-单条和批量接口均执行物理删除。办理离职时使用 PUT 将 `status` 改为 `0`。批量删除接受 1 至 100 个互不重复的正整数 ID。Service 在删除前检查这些 ID 是否存在。并发场景的事务原子性在阶段 6 验收。
+单条和批量接口均执行物理删除。办理离职时使用 PUT 将 `status` 改为 `0`。批量删除接受 1 至 100 个互不重复的正整数 ID。Service 在事务中核对 ID 和删除行数，发生不一致时回滚本次删除。
 
 ## 成功响应
 
@@ -60,4 +68,17 @@ POST 和 PUT 使用 `Content-Type: application/json`。新增请求示例见下�
 }
 ```
 
-阶段 5 的响应结构覆盖成功请求。缺少 `ids` 或类型转换失败时，Spring MVC 返回 HTTP `400`。业务异常的 HTTP 状态映射、统一错误响应和登录拦截在阶段 6 接入。
+## 错误响应
+
+错误响应沿用 `code`、`message`、`data` 三个字段，`code` 与 HTTP 状态码相同，`data` 为 `null`。
+
+| 状态 | 常见原因 |
+| --- | --- |
+| `400` | 参数缺失、类型或 JSON 错误、校验不通过 |
+| `401` | 未登录、Session 已失效或登录凭据错误 |
+| `404` | 员工或接口不存在 |
+| `405` | 请求方法不受支持 |
+| `409` | 数据库约束冲突 |
+| `415` | 请求内容类型不受支持 |
+| `500` | 未预期的处理错误 |
+| `503` | 实验账号尚未配置，登录暂时不可用 |

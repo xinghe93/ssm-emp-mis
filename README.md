@@ -6,9 +6,9 @@
 
 ## 当前进度
 
-已完成阶段 1 至阶段 5。下一阶段是参数校验、统一异常、登录拦截、请求日志和事务管理。
+已完成阶段 1 至阶段 6。下一阶段是回归测试、ApiFox 验证和交付。
 
-项目已具备 Maven WAR 构建、SSM 全注解配置、MySQL 初始化脚本和六个员工 HTTP 接口。接口支持增删改查、批量删除及多条件分页，成功响应统一使用 `Result<T>`。请求与响应见 [员工 REST API](docs/api.md)。
+项目已具备 Maven WAR 构建、SSM 全注解配置、MySQL 初始化脚本和六个员工 HTTP 接口。员工接口需要实验登录，响应统一使用 `Result<T>`，完整更新和批量删除使用声明式事务。请求与响应见 [员工 REST API](docs/api.md)。
 
 ## 环境与版本
 
@@ -209,9 +209,16 @@ SELECT COUNT(*) AS test_employee_count FROM ssm_emp_test.emp;
 - 从现有脚本恢复了缺失的业务库及 24 条样例。HTTP 验收的写入限定在 `ssm_emp_test`，验收结束后业务库仍有 24 条样例、测试表为空，临时账号已清理。
 - 将 MyBatis-Plus 的 SQL 解析线程池纳入 Spring 生命周期，Tomcat 停止后未报告解析线程残留。
 
+## 阶段 6 实际验收记录（2026-11-25）
+
+- `mvn verify -Pintegration` 构建成功，13 项 MVC 与 JSON 测试和 12 项 MySQL 集成测试均通过。
+- MockMvc 验证参数校验及 `400`、`401`、`404`、`405`、`409`、`415`、`500`、`503` 响应。外部 Tomcat 11.0.22 验证了真实 Cookie 登录、Session ID 更新、登出失效和六个员工接口。
+- 检查控制台请求日志中的路由、处理耗时和状态，并核对实验密码、Session ID 和测试查询参数未写入日志。
+- 事务集成测试在 MySQL 8.4.11 上验证了批删提交、真实 SQL 写入后的回滚及三种常见失效场景。细节见 [事务验证](docs/transaction-verification.md)。测试结束后业务表和测试表记录数与执行前一致。
+
 ## 配置与数据约束
 
-数据源从 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD` 读取连接信息，测试库使用独立的测试环境变量。
+数据源从 `DB_URL`、`DB_USERNAME`、`DB_PASSWORD` 读取连接信息，测试库使用独立的测试环境变量。实验登录从 `AUTH_USERNAME` 和 `AUTH_PASSWORD` 读取账号与密码。
 
 - 不在 POM、源码、README、初始化脚本或 ApiFox 导出中写入真实密码。
 - 本地 `.env` 和 application-local.properties 等敏感配置已加入忽略规则；原生 Spring 不会自动加载 `.env`，环境变量需由终端或 IDEA 运行配置提供。

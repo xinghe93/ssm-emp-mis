@@ -4,7 +4,9 @@ public class BusinessException extends RuntimeException {
 
     public enum Code {
         INVALID_ARGUMENT,
-        EMPLOYEE_NOT_FOUND
+        EMPLOYEE_NOT_FOUND,
+        UNAUTHENTICATED,
+        AUTH_UNAVAILABLE
     }
 
     private final Code code;
