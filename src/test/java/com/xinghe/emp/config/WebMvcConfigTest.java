@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverters;
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.mock.http.MockHttpOutputMessage;
+import org.springframework.mock.env.MockEnvironment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -18,7 +19,7 @@ class WebMvcConfigTest {
     @Test
     void jsonConverterSerializesUtf8IsoDatesAndDecimalAmounts() throws Exception {
         var builder = HttpMessageConverters.forServer();
-        new WebMvcConfig().configureMessageConverters(builder);
+        new WebMvcConfig(new MockEnvironment()).configureMessageConverters(builder);
         var converter = StreamSupport.stream(builder.build().spliterator(), false)
                 .filter(JacksonJsonHttpMessageConverter.class::isInstance)
                 .map(JacksonJsonHttpMessageConverter.class::cast)

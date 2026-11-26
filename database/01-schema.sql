@@ -17,6 +17,7 @@ CREATE TABLE emp (
     hire_date DATE NOT NULL COMMENT '入职日期',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '任职状态：1 在职，0 离职',
     PRIMARY KEY (emp_id),
+    INDEX idx_emp_name (emp_name),
     INDEX idx_emp_dept (dept),
     CONSTRAINT ck_emp_gender CHECK (gender IN (0, 1, 2)),
     CONSTRAINT ck_emp_salary CHECK (salary >= 0),

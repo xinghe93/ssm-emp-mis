@@ -1,0 +1,973 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ssm-emp-mis 员工管理 API",
+    "version": "1.0.0",
+    "description": "Java 框架技术课程实验，使用 Session Cookie 登录。"
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8080/ssm-emp-mis",
+      "description": "本地 Tomcat"
+    }
+  ],
+  "tags": [
+    {
+      "name": "会话"
+    },
+    {
+      "name": "员工"
+    }
+  ],
+  "security": [
+    {
+      "SessionCookie": []
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "会话"
+        ],
+        "summary": "实验登录",
+        "operationId": "login",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResult"
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "JSESSIONID 在新建或更新会话时由 Tomcat 发送",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          }
+        },
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "会话"
+        ],
+        "summary": "退出登录",
+        "operationId": "logout",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResult"
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "security": []
+      }
+    },
+    "/emps": {
+      "post": {
+        "tags": [
+          "员工"
+        ],
+        "summary": "新增员工",
+        "operationId": "createEmployee",
+        "responses": {
+          "201": {
+            "description": "创建成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResult"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "description": "新增员工的资源路径，含 WAR 上下文",
+                "schema": {
+                  "type": "string"
+                },
+                "example": "/ssm-emp-mis/emps/42"
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeCreate"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "员工"
+        ],
+        "summary": "完整更新员工",
+        "operationId": "updateEmployee",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmployeeUpdate"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "员工"
+        ],
+        "summary": "批量删除员工",
+        "operationId": "deleteEmployees",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "415": {
+            "$ref": "#/components/responses/Error415"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "员工 ID 的 JSON 数组。",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchEmployeeIds"
+              },
+              "example": [1, 2]
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "员工"
+        ],
+        "summary": "筛选和分页",
+        "operationId": "listEmployees",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeePageResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "description": "姓名包含式匹配",
+            "schema": {
+              "type": "string",
+              "maxLength": 50
+            }
+          },
+          {
+            "name": "gender",
+            "in": "query",
+            "required": false,
+            "description": "性别精确匹配",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1,
+                2
+              ],
+              "description": "0 未说明，1 男，2 女"
+            }
+          },
+          {
+            "name": "dept",
+            "in": "query",
+            "required": false,
+            "description": "部门精确匹配",
+            "schema": {
+              "type": "string",
+              "maxLength": 50
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "页码从 1 开始",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "description": "每页记录数",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10
+            }
+          }
+        ]
+      }
+    },
+    "/emps/{id}": {
+      "get": {
+        "tags": [
+          "员工"
+        ],
+        "summary": "按 ID 查询",
+        "operationId": "getEmployee",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "员工 ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "员工"
+        ],
+        "summary": "删除指定员工",
+        "operationId": "deleteEmployee",
+        "responses": {
+          "200": {
+            "description": "成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error400"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error401"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "员工 ID",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "SessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "JSESSIONID"
+      }
+    },
+    "schemas": {
+      "BatchEmployeeIds": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "format": "int64",
+          "minimum": 1
+        },
+        "minItems": 1,
+        "maxItems": 100,
+        "uniqueItems": true
+      },
+      "Employee": {
+        "type": "object",
+        "required": [
+          "empId",
+          "empName",
+          "gender",
+          "dept",
+          "post",
+          "salary",
+          "hireDate",
+          "status"
+        ],
+        "properties": {
+          "empId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "example": 1
+          },
+          "empName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "张三"
+          },
+          "gender": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "0 未说明，1 男，2 女",
+            "example": 1
+          },
+          "dept": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "研发部"
+          },
+          "post": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "工程师"
+          },
+          "salary": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 9999999999.99,
+            "multipleOf": 0.01,
+            "example": 12345.67
+          },
+          "hireDate": {
+            "type": "string",
+            "format": "date",
+            "description": "不能晚于服务器当天日期",
+            "example": "2024-02-29"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "0 离职，1 在职",
+            "example": 1
+          }
+        }
+      },
+      "EmployeeCreate": {
+        "type": "object",
+        "required": [
+          "empName",
+          "gender",
+          "dept",
+          "post",
+          "salary",
+          "hireDate"
+        ],
+        "properties": {
+          "empName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "张三"
+          },
+          "gender": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "0 未说明，1 男，2 女",
+            "example": 1
+          },
+          "dept": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "研发部"
+          },
+          "post": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "工程师"
+          },
+          "salary": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 9999999999.99,
+            "multipleOf": 0.01,
+            "example": 12345.67
+          },
+          "hireDate": {
+            "type": "string",
+            "format": "date",
+            "description": "不能晚于服务器当天日期",
+            "example": "2024-02-29"
+          },
+          "status": {
+            "type": ["integer", "null"],
+            "enum": [
+              0,
+              1,
+              null
+            ],
+            "description": "0 离职，1 在职",
+            "default": 1
+          }
+        }
+      },
+      "EmployeeUpdate": {
+        "type": "object",
+        "required": [
+          "empId",
+          "empName",
+          "gender",
+          "dept",
+          "post",
+          "salary",
+          "hireDate",
+          "status"
+        ],
+        "properties": {
+          "empId": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "example": 1
+          },
+          "empName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "张三"
+          },
+          "gender": {
+            "type": "integer",
+            "enum": [
+              0,
+              1,
+              2
+            ],
+            "description": "0 未说明，1 男，2 女",
+            "example": 1
+          },
+          "dept": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "研发部"
+          },
+          "post": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50,
+            "example": "工程师"
+          },
+          "salary": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 9999999999.99,
+            "multipleOf": 0.01,
+            "example": 12345.67
+          },
+          "hireDate": {
+            "type": "string",
+            "format": "date",
+            "description": "不能晚于服务器当天日期",
+            "example": "2024-02-29"
+          },
+          "status": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ],
+            "description": "0 离职，1 在职",
+            "example": 1
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 1,
+            "maxLength": 256,
+            "writeOnly": true
+          }
+        }
+      },
+      "EmployeePage": {
+        "type": "object",
+        "required": [
+          "records",
+          "total",
+          "page",
+          "size",
+          "pages"
+        ],
+        "properties": {
+          "records": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Employee"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "page": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "pages": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "EmployeeResult": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "成功"
+          },
+          "data": {
+            "$ref": "#/components/schemas/Employee"
+          }
+        }
+      },
+      "EmployeePageResult": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "成功"
+          },
+          "data": {
+            "$ref": "#/components/schemas/EmployeePage"
+          }
+        }
+      },
+      "DeleteResult": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "成功"
+          },
+          "data": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      },
+      "SessionResult": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 0
+          },
+          "message": {
+            "type": "string",
+            "example": "成功"
+          },
+          "data": {
+            "type": "null"
+          }
+        }
+      },
+      "ErrorResult": {
+        "type": "object",
+        "required": [
+          "code",
+          "message",
+          "data"
+        ],
+        "properties": {
+          "code": {
+            "type": "integer",
+            "example": 401
+          },
+          "message": {
+            "type": "string",
+            "example": "请先登录"
+          },
+          "data": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    "responses": {
+      "Error400": {
+        "description": "请求参数无效",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 400,
+              "message": "请求参数无效",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error401": {
+        "description": "未登录或登录失败",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 401,
+              "message": "未登录或登录失败",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error404": {
+        "description": "员工或接口不存在",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 404,
+              "message": "员工或接口不存在",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error405": {
+        "description": "请求方法不受支持",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 405,
+              "message": "请求方法不受支持",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error406": {
+        "description": "无法提供请求的响应格式",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 406,
+              "message": "无法提供请求的响应格式",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error409": {
+        "description": "数据库约束冲突",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 409,
+              "message": "数据库约束冲突",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error415": {
+        "description": "请求内容类型不受支持",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 415,
+              "message": "请求内容类型不受支持",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error500": {
+        "description": "服务器内部错误",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 500,
+              "message": "服务器内部错误",
+              "data": null
+            }
+          }
+        }
+      },
+      "Error503": {
+        "description": "实验登录账号尚未配置",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResult"
+            },
+            "example": {
+              "code": 503,
+              "message": "实验登录账号尚未配置",
+              "data": null
+            }
+          }
+        }
+      }
+    }
+  }
+}
